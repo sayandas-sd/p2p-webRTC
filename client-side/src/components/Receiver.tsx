@@ -15,6 +15,13 @@ export const Receiver = ()=>{
             if(message.type === 'createOffer'){
                 const pc = new RTCPeerConnection();
                 pc.setRemoteDescription(message.sdp);
+
+                pc.onicecandidate = (event)=>{
+                    if(event.candidate){
+                        socket?.send(JSON.stringify({type: 'iceCandidate', candidate: event.candidate}));
+                    }
+                }
+                
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer)
                 socket.send(JSON.stringify({type: 'createAnswer', sdp: pc.localDescription}))
