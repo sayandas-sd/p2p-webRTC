@@ -15,9 +15,14 @@ export const Sender = ()=>{
         if(!socket) return;
 
         const pc = new RTCPeerConnection();
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
 
+        pc.onnegotiationneeded = async () => {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket?.send(JSON.stringify({type: 'createOffer', sdp: pc.localDescription}));
+        
+        }
+        
         //send ice candidate :-)
         pc.onicecandidate = (event)=>{
             if(event.candidate){
@@ -25,7 +30,6 @@ export const Sender = ()=>{
             }
         }
 
-        socket?.send(JSON.stringify({type: 'createOffer', sdp: pc.localDescription}));
         
         //sender catch the event in here
         socket.onmessage = (event)=>{
@@ -36,7 +40,13 @@ export const Sender = ()=>{
                 pc.addIceCandidate(data.candidate)
             }
         }
+
+        //video stream
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true});
+        pc.addTrack(stream.getVideoTracks()[0]);
+        pc.addTrack(stream.getAudioTracks()[0]);
     }
+
 
     return <div>
         <button
